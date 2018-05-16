@@ -1,7 +1,6 @@
 <h1>Data analysis and forecasting using ARIMA and neural networks.</h1>
-=====================
 
-Installing:
+<h3>Installing:
 
 Install Visual Studio Code with Python and Jupyter OR use Jupyter Notebook;
 Install Anaconda;

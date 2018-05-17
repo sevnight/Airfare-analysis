@@ -1,5 +1,3 @@
-# Ubuntu market share analisys
-# Create by denismaster
 
 # In[4]:
 
@@ -233,19 +231,42 @@ from keras.models import Sequential
 from keras.layers import Dense, LSTM
 from sklearn.preprocessing import MinMaxScaler
 
+# initialize figur and axes
+fig, axes = plt.subplots(1, 2, sharey=False, sharex=False, figsize=(16, 6))
+fig.suptitle('XOR Problem', fontsize=24, fontweight='bold')
+ 
+# classifiable plot
+axes[0].plot([0,0,1], [0,1,0], 'o', color='grey')
+axes[0].plot([1], [1], 'X', color='#ff0066')
+axes[0].plot([0.25, 1.25], [1.25, 0.25], color='black')
+axes[0].set_xlim((-0.25, 1.25))
+axes[0].set_ylim((-0.25, 1.25))
+ 
+# unclassifiable plot
+axes[1].plot([0,1], [1,0], 'o', color='grey')
+axes[1].plot([0, 1], [0, 1], 'X', color='#ff0066')
+axes[1].set_xlim((-0.25, 1.25))
+axes[1].set_ylim((-0.25, 1.25))
+plt.savefig('./img/xor_problem.png')
+plt.show()
+
 # set seed
 np.random.seed(7)
  
 # import data set
-df = pd.read_csv('data.csv', sep=';', parse_dates=True, index_col=0)
+#df = pd.read_csv('data.csv', sep=';', parse_dates=True, index_col=0)
+data = loadFile('data.csv', 'Date')
+df= prepareData(data)
 data = df.values
  
 # using keras often requires the data type float32
 data = data.astype('float32')
  
 # slice the data
-train = data[0:120, :]   # length 120
-test = data[120:, :]     # length 24
+#train = data[0:120, :]   # length 120
+#test = data[120:, :]     # length 24
+train = df[0:100 :]   # length 100
+test = df[100: :]     # length 6
 
 def prepare_data(data, lags=1):
     """
@@ -253,9 +274,9 @@ def prepare_data(data, lags=1):
     """
     X, y = [], []
     for row in range(len(data) - lags - 1):
-        a = data[row:(row + lags), 0]
+        a = data[row:(row + lags)]
         X.append(a)
-        y.append(data[row + lags, 0])
+        y.append(data[row + lags])
     return np.array(X), np.array(y)
  
 # prepare the data
@@ -269,5 +290,188 @@ plt.plot(y_test, label='Original Data | y or t+1', color='#006699')
 plt.plot(X_test, label='Lagged Data | X or t', color='orange')
 plt.legend(loc='upper left')
 plt.title('One Period Lagged Data')
+plt.show()
+
+# In[41]
+# Прогнозирование временных рядов с помощью многослойной сети персептрона
+# create and fit Multilayer Perceptron model
+mdl = Sequential()
+mdl.add(Dense(3, input_dim=lags, activation='relu'))
+mdl.add(Dense(1))
+mdl.compile(loss='mean_squared_error', optimizer='adam')
+mdl.fit(X_train, y_train, epochs=400, batch_size=2, verbose=2)
+
+import math
+# estimate model performance
+train_score = mdl.evaluate(X_train, y_train, verbose=0)
+print('Train Score: {:.2f} MSE ({:.2f} RMSE)'.format(train_score, math.sqrt(train_score)))
+test_score = mdl.evaluate(X_test, y_test, verbose=0)
+print('Test Score: {:.2f} MSE ({:.2f} RMSE)'.format(test_score, math.sqrt(test_score)))
+
+# generate predictions for training
+train_predict = mdl.predict(X_train)
+test_predict = mdl.predict(X_test)
+ 
+# shift train predictions for plotting
+train_predict_plot = np.empty_like(data)
+train_predict_plot[: :] = np.nan
+train_predict_plot[lags: len(train_predict) + lags :] = train_predict[1]
+ 
+# shift test predictions for plotting
+test_predict_plot = np.empty_like(data)
+test_predict_plot[: :] = np.nan
+test_predict_plot[len(train_predict)+(lags*2)+1:len(data)-1 :] = test_predict[1]
+ 
+# plot baseline and predictions
+plt.plot(data, label='Observed', color='#006699')
+plt.plot(train_predict_plot, label='Prediction for Train Set', color='#006699', alpha=0.5)
+plt.plot(test_predict_plot, label='Prediction for Test Set', color='#ff0066')
+plt.legend(loc='best')
+plt.title('Artificial Neural Network')
+plt.show()
+
+mse = ((y_test.reshape(-1, 1) - test_predict.reshape(-1, 1)) ** 2).mean()
+plt.title('Prediction quality: {:.2f} MSE ({:.2f} RMSE)'.format(mse, math.sqrt(mse)))
+plt.plot(y_test.reshape(-1, 1), label='Observed', color='#006699')
+plt.plot(test_predict.reshape(-1, 1), label='Prediction', color='#ff0066')
+plt.legend(loc='best')
+plt.show()
+
+
+# In[42]
+# Многослойный перцептрон с окном
+# reshape and lag shift the dataset
+lags = 3
+X_train, y_train = prepare_data(train, lags)
+X_test, y_test = prepare_data(test, lags)
+ 
+# plot the created data
+plt.plot(y_train, label='Original Data | y or t+1', color='#006699')
+plt.plot(X_train, label='Lagged Data', color='orange')
+plt.legend(loc='best')
+plt.title('Three Period Lagged Data')
+plt.savefig('./img/ann3_training.png')
+plt.show()
+
+# create and fit Multilayer Perceptron model
+mdl = Sequential()
+mdl.add(Dense(4, input_dim=lags, activation='relu'))
+mdl.add(Dense(8, activation='relu'))
+mdl.add(Dense(1))
+mdl.compile(loss='mean_squared_error', optimizer='adam')
+mdl.fit(X_train, y_train, epochs=400, batch_size=2, verbose=2)
+ 
+# Estimate model performance
+train_score = mdl.evaluate(X_train, y_train, verbose=0)
+print('Train Score: {:.2f} MSE ({:.2f} RMSE)'.format(train_score, math.sqrt(train_score)))
+test_score = mdl.evaluate(X_test, y_test, verbose=0)
+print('Test Score: {:.2f} MSE ({:.2f} RMSE)'.format(test_score, math.sqrt(test_score)))
+
+# generate predictions for training
+train_predict = mdl.predict(X_train)
+test_predict = mdl.predict(X_test)
+ 
+# shift train predictions for plotting
+train_predict_plot = np.empty_like(data)
+train_predict_plot[: :] = np.nan
+train_predict_plot[lags: len(train_predict) + lags :] = train_predict[1]
+ 
+# shift test predictions for plotting
+test_predict_plot = np.empty_like(data)
+test_predict_plot[: :] = np.nan
+test_predict_plot[len(train_predict)+(lags * 2)+1:len(data)-1 :] = test_predict
+ 
+# plot observation and predictions
+plt.plot(data, label='Observed', color='#006699');
+plt.plot(train_predict_plot, label='Prediction for train', color='#006699', alpha=0.5);
+plt.plot(test_predict_plot, label='Prediction for test', color='#ff0066');
+plt.legend(loc='best')
+plt.title('Multilayer Perceptron with Window')
+plt.show()
+
+mse = ((y_test.reshape(-1, 1) - test_predict.reshape(-1, 1)) ** 2).mean()
+plt.title('Prediction quality: {:.2f} MSE ({:.2f} RMSE)'.format(mse, math.sqrt(mse)))
+plt.plot(y_test.reshape(-1, 1), label='Observed', color='#006699')
+plt.plot(test_predict.reshape(-1, 1), label='Prediction', color='#ff0066')
+plt.legend(loc='upper left')
+plt.show()
+
+
+# In[43]
+# Прогнозирование временных рядов с повторяющейся нейронной сетью LSTM
+# fix random seed for reproducibility
+np.random.seed(1)
+ 
+# load the dataset
+data = loadFile('data.csv', 'Date')
+df= prepareData(data)
+data = df.values
+data = data.astype('float32')
+ 
+# normalize the dataset
+scaler = MinMaxScaler(feature_range=(0, 1))
+dataset = scaler.fit_transform(data[1])
+ 
+# split into train and test sets
+train = dataset[0:100, :]
+test = dataset[100:, :]
+ 
+# reshape into X=t and Y=t+1
+lags = 3
+X_train, y_train = prepare_data(train, lags)
+X_test, y_test = prepare_data(test, lags)
+ 
+# reshape input to be [samples, time steps, features]
+X_train = np.reshape(X_train, (X_train.shape[0], 1, X_train.shape[1]))
+X_test = np.reshape(X_test, (X_test.shape[0], 1, X_test.shape[1]))
+
+# create and fit the LSTM network
+mdl = Sequential()
+mdl.add(Dense(3, input_shape=(1, lags), activation='relu'))
+mdl.add(LSTM(6, activation='relu'))
+mdl.add(Dense(1, activation='relu'))
+mdl.compile(loss='mean_squared_error', optimizer='adam')
+mdl.fit(X_train, y_train, epochs=100, batch_size=1, verbose=2)
+
+# make predictions
+train_predict = mdl.predict(X_train)
+test_predict = mdl.predict(X_test)
+ 
+# invert transformation
+train_predict = scaler.inverse_transform(train_predict)
+y_train = scaler.inverse_transform([y_train])
+test_predict = scaler.inverse_transform(test_predict)
+y_test = scaler.inverse_transform([y_test])
+ 
+# calculate root mean squared error
+train_score = math.sqrt(mean_squared_error(y_train[0], train_predict[:,0]))
+print('Train Score: {:.2f} RMSE'.format(train_score))
+test_score = math.sqrt(mean_squared_error(y_test[0], test_predict[:,0]))
+print('Test Score: {:.2f} RMSE'.format(test_score))
+
+# shift train predictions for plotting
+train_predict_plot = np.empty_like(data)
+train_predict_plot[:, :] = np.nan
+train_predict_plot[lags:len(train_predict)+lags, :] = train_predict
+ 
+# shift test predictions for plotting
+test_predict_plot = np.empty_like(data)
+test_predict_plot[:, :] = np.nan
+test_predict_plot[len(train_predict) + (lags * 2)+1:len(data)-1, :] = test_predict
+ 
+# plot observation and predictions
+plt.plot(data, label='Observed', color='#006699');
+plt.plot(train_predict_plot, label='Prediction for Train Set', color='#006699', alpha=0.5);
+plt.plot(test_predict_plot, label='Prediction for Test Set', color='#ff0066');
+plt.legend(loc='upper left')
+plt.title('LSTM Recurrent Neural Net')
+plt.show()
+
+mse = ((y_test.reshape(-1, 1) - test_predict.reshape(-1, 1)) ** 2).mean()
+plt.title('Prediction quality: {:.2f} MSE ({:.2f} RMSE)'.format(mse, math.sqrt(mse)))
+plt.plot(y_test.reshape(-1, 1), label='Observed', color='#006699')
+plt.plot(test_predict.reshape(-1, 1), label='Prediction', color='#ff0066')
+plt.legend(loc='upper left');
+plt.savefig('./img/lstm_close.png')
 plt.show()
 

@@ -1,2 +1,4 @@
 img/
 ff
+#Исключим сам файл .gitignore:
+.gitignore

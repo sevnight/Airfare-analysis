@@ -2,10 +2,10 @@
 
 ### Installing:
 
-<li>Install Visual Studio Code with Python and Jupyter OR use Jupyter Notebook;
-<li>Install Anaconda;
+1. Install Visual Studio Code with Python and Jupyter OR use Jupyter Notebook;
+2. Install Anaconda;
 
-<li>Install library:
+3. Install library:
 ⋅⋅*conda install numpy;
 ⋅⋅*conda install pandas;
 ⋅⋅*conda install matplotlib;

@@ -1,5 +1,5 @@
 
-# In[4]:
+# In[1]:
 
 import pandas as pd
 import numpy as np
@@ -7,6 +7,15 @@ import matplotlib.pylab as plt
 
 from matplotlib.pylab import rcParams
 rcParams['figure.figsize'] = 15, 6
+
+import keras
+import math
+import sklearn
+from keras.models import Sequential
+from keras.layers import Dense, LSTM
+from sklearn.preprocessing import MinMaxScaler
+
+# In[2]
 
 # Функция загрузки файла
 def loadFile(filename, dateCol):
@@ -22,10 +31,17 @@ def prepareData(data):
     return ts
 
 data = loadFile('data.csv', 'Date')
-ts= prepareData(data)
-ts.head(10) #выведем первые 5 элементов ряда
+ts2= prepareData(data)
+ts2.head(10) #выведем первые 5 элементов ряда
 
-# In[6]:
+# In[54]
+dateparse = lambda dates: pd.datetime.strptime(dates,"%d.%m.%y")
+data=pd.read_csv('data3.csv', index_col="Data", parse_dates=[0],date_parser=dateparse )
+ts=data['Price']
+
+ts.head(10)
+
+# In[3]:
 
 # Функция для проверки ряда на стационарность методом Дикки-Фуллера
 from statsmodels.tsa.stattools import adfuller
@@ -57,7 +73,7 @@ def test_stationarity(timeseries):
 plt.plot(ts)
 test_stationarity(ts)
 
-# In[8]:
+# In[4]:
 
 # Берем натуральный логарифм
 def remove_log(ts):
@@ -72,7 +88,7 @@ plt.plot(ts_log)
 plt.plot(moving_avg, color='red')
 plt.show()
 
-# In[13]:
+# In[5]:
 
 # Убираем стационарность (скользящее среднее)
 def remove_moving_avg(ts, moving_avg):
@@ -83,12 +99,12 @@ ts_log_moving_avg_diff.head(12)
 plt.plot(ts_log_moving_avg_diff)
 plt.show()
 
-# In[16]:
+# In[6]:
 
 ts_log_moving_avg_diff.dropna(inplace=True)
 test_stationarity(ts_log_moving_avg_diff)
 
-# In[17]:
+# In[7]:
 
 # Убираем стационарность (экспоненциально взвешенное скользящее среднее)
 def exp_wighted_avg(ts_log):
@@ -99,12 +115,12 @@ plt.plot(ts_log)
 plt.plot(expwighted_avg, color='red')
 plt.show()
 
-# In[18]:
+# In[8]:
 
 ts_log_ewma_diff = ts_log - expwighted_avg
 test_stationarity(ts_log_ewma_diff)
 
-# In[19]:
+# In[9]:
 
 # Убираем стационарность (разница между y(t) и y(t+1))
 def  series_diff(ts_log):
@@ -114,12 +130,12 @@ ts_log_diff = series_diff(ts_log)
 plt.plot(ts_log_diff)
 plt.show()
 
-# In[20]:
+# In[10]:
 
 ts_log_diff.dropna(inplace=True)
 test_stationarity(ts_log_diff)
 
-# In[21]:
+# In[11]:
 
 # Раскладываем модель на составляющие, анализируем остатки
 from statsmodels.tsa.seasonal import seasonal_decompose
@@ -152,14 +168,14 @@ def split_analysis(ts_log):
     
 residuals = split_analysis(ts_log)[2]
 
-# In[22]:
+# In[12]:
 
 # Рассматриваем ряд остатков, проверяем его на стационарность
 ts_log_decompose = residuals
 ts_log_decompose.dropna(inplace=True)
 test_stationarity(ts_log_decompose)
 
-# In[24]:
+# In[13]:
 
 # Строим АКФ и ЧАКФ
 from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
@@ -170,7 +186,7 @@ def plot_correlation_funcs(ts_log_diff):
     
 plot_correlation_funcs(ts_log_diff)
 
-# In[26]:
+# In[14]:
 
 # Строим различные модели ARIMA, пытаемся подобрать правильную
 from statsmodels.tsa.arima_model import ARIMA
@@ -193,7 +209,7 @@ results_MA = find_ARIMA(ts_log, ts_log_diff, (0,1,2))
 print('ARIMA-модель')
 results_ARIMA = find_ARIMA(ts_log, ts_log_diff, (2,1,2))
 
-# In[39]:
+# In[15]:
 
 # По модели ARIMA пытаемся сделать прогноз
 def make_prediction(ts, ts_log, results_ARIMA):
@@ -223,39 +239,43 @@ def make_prediction(ts, ts_log, results_ARIMA):
 
 make_prediction(ts, ts_log, results_ARIMA)
 
-# In[40]
+# In[16]
 # Начало работы с Нейронкой
-import keras
-import math
-import sklearn
-from keras.models import Sequential
-from keras.layers import Dense, LSTM
-from sklearn.preprocessing import MinMaxScaler
 
 def prepare_data(data, lags=1):
-    
-# Create lagged data from an input time series
-
+    """
+    Create lagged data from an input time series
+    """
     X, y = [], []
     for row in range(len(data) - lags - 1):
-        a = data[row:(row + lags)]
+        a = data[row:(row + lags), 0]
         X.append(a)
-        y.append(data[row + lags])
+        y.append(data[row + lags, 0])
     return np.array(X), np.array(y)
 
-data = loadFile('data.csv', 'Date')
-df= prepareData(data)
+np.random.seed(7)
+#data = loadFile('data.csv', 'Date')
+#df= prepareData(data)
 #df.head(10)
-data2 = df
-data2.head(10)
- 
+#data2 = df
+#data2 = df.values[1]
+
+df = pd.read_csv('data3.csv', sep=';', parse_dates=True, index_col=0)
+data2 = df.values
+
 # using keras often requires the data type float32
 data2 = data2.astype('float32')
 
-# In[50]
-train = data2[0:100]   # length 100
-test = data2[100:]     # length 6
+#data2.head(10)
+ 
+# In[17]
+train = data2[0:1000,:]   # length 101
+test = data2[1000:,:]     # length 5
 
+# In[18]
+test.head(10)
+
+# In[19]
 # Многослойный перцептрон с окном
 # reshape and lag shift the dataset
 lags = 3
@@ -284,37 +304,43 @@ print('Train Score: {:.2f} MSE ({:.2f} RMSE)'.format(train_score, math.sqrt(trai
 test_score = mdl.evaluate(X_test, y_test, verbose=0)
 print('Test Score: {:.2f} MSE ({:.2f} RMSE)'.format(test_score, math.sqrt(test_score)))
 
+# In[20]
 # generate predictions for training
 train_predict = mdl.predict(X_train)
 test_predict = mdl.predict(X_test)
  
 # shift train predictions for plotting
-train_predict_plot = np.empty_like(data)
-train_predict_plot[:] = np.nan
-train_predict_plot[lags: len(train_predict) + lags :] = train_predict[0]
+train_predict_plot = np.empty_like(data2)
+train_predict_plot[:, :] = np.nan
+train_predict_plot[lags: len(train_predict) + lags, :] = train_predict
  
 # shift test predictions for plotting
-test_predict_plot = np.empty_like(data)
-test_predict_plot[:] = np.nan
-test_predict_plot[len(train_predict)+(lags * 2)+1:len(data)-1 : ] = test_predict
+test_predict_plot = np.empty_like(data2)
+test_predict_plot[:, :] = np.nan
+test_predict_plot[len(train_predict)+(lags*2)+1:len(data2)-1, :] = test_predict
  
-# plot observation and predictions
-plt.plot(data, label='Observed', color='#006699');
-plt.plot(train_predict_plot, label='Prediction for train', color='#006699', alpha=0.5);
-plt.plot(test_predict_plot, label='Prediction for test', color='#ff0066');
-plt.legend(loc='best')
-plt.title('Multilayer Perceptron with Window')
+# plot baseline and predictions
+plt.plot(data2, label='Observed', color='#006699');
+plt.plot(train_predict_plot, label='Prediction for Train Set', color='#006699', alpha=0.5);
+plt.plot(test_predict_plot, label='Prediction for Test Set', color='#ff0066');
+plt.legend(loc='best');
+plt.title('Artificial Neural Network')
+plt.savefig('./img/art_neuro.png')
 plt.show()
 
+
+# In[21]
 mse = ((y_test.reshape(-1, 1) - test_predict.reshape(-1, 1)) ** 2).mean()
 plt.title('Prediction quality: {:.2f} MSE ({:.2f} RMSE)'.format(mse, math.sqrt(mse)))
 plt.plot(y_test.reshape(-1, 1), label='Observed', color='#006699')
 plt.plot(test_predict.reshape(-1, 1), label='Prediction', color='#ff0066')
 plt.legend(loc='upper left')
+plt.savefig('./img/art_neuro2.png')
 plt.show()
 
 
-# In[43]
+
+# In[22]
 # Прогнозирование временных рядов с повторяющейся нейронной сетью LSTM
 # fix random seed for reproducibility
 np.random.seed(1)

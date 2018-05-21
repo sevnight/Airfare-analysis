@@ -15,10 +15,14 @@ from keras.models import Sequential
 from keras.layers import Dense, LSTM
 from sklearn.preprocessing import MinMaxScaler
 
+# Функция загрузки файла
+def loadFile(filename, dateCol):
+    dateparse = lambda dates: pd.datetime.strptime(dates,"%d.%m.%y")
+    data = pd.read_csv(filename,index_col=dateCol, parse_dates=[0],date_parser=dateparse)
+    return data
 
 # In[2]
-dateparse = lambda dates: pd.datetime.strptime(dates,"%d.%m.%y")
-data=pd.read_csv('data.csv', index_col="Data", parse_dates=[0],date_parser=dateparse )
+data=loadFile('airfare.csv',"Date")
 ts=data['Price']
 
 ts.head(10)
@@ -128,8 +132,8 @@ test_stationarity(ts_log_diff)
 # Раскладываем модель на составляющие, анализируем остатки
 from statsmodels.tsa.seasonal import seasonal_decompose
 def split_series(ts_log):
-    decomposition = seasonal_decompose(ts_log)
-    
+    decomposition = seasonal_decompose(ts_log,freq=52)
+
     trend = decomposition.trend
     seasonal = decomposition.seasonal
     residual = decomposition.resid
@@ -151,7 +155,6 @@ def split_analysis(ts_log):
     plt.plot(splits[2], label='Residuals')
     plt.legend(loc='best')
     plt.tight_layout()
-    plt.savefig('./img/arima/6_residual.png')
     plt.show()
     return splits
     
@@ -199,7 +202,7 @@ print('MA-модель')
 results_MA = find_ARIMA(ts_log, ts_log_diff, (0,1,2))
 
 print('ARIMA-модель')
-results_ARIMA = find_ARIMA(ts_log, ts_log_diff, (1,1,1))
+results_ARIMA = find_ARIMA(ts_log, ts_log_diff, (2,1,2))
 
 # In[15]:
 
@@ -207,7 +210,7 @@ results_ARIMA = find_ARIMA(ts_log, ts_log_diff, (1,1,1))
 def make_prediction(ts, ts_log, results_ARIMA):
     predictions_ARIMA_diff = pd.Series(results_ARIMA.fittedvalues, copy=True)
     predictions_ARIMA_diff.head()
-    future = results_ARIMA.predict('19.12.17', '24.12.17')
+    future = results_ARIMA.predict('20.4.19', '23.4.19')
     future.head()
     pred = predictions_ARIMA_diff.append(future)
     
@@ -226,7 +229,7 @@ def make_prediction(ts, ts_log, results_ARIMA):
     plt.savefig('./img/arima/9_prediction.png')
     plt.show()
 
-    predictionRange = predictions_ARIMA.loc['20.12.17':'24.12.17']
+    predictionRange = predictions_ARIMA.loc['21.4.19':'23.4.19']
     std = predictionRange.std()
     print('std2: %.4f'% np.sqrt(std))
 
@@ -254,23 +257,22 @@ def prepare_data(data, lags=1):
     return np.array(X), np.array(y)
 
 np.random.seed(7)
-#data = loadFile('data.csv', 'Date')
-#df= prepareData(data)
-#df.head(10)
-#data2 = df
-#data2 = df.values[1]
 
-df = pd.read_csv('data.csv', sep=';', parse_dates=True, index_col=0)
-data2 = df.values
+df=loadFile('data.csv',"Data")
+data2=df['Price']
+
+data2.head(10)
+
+#data2 = data2.values
 
 # using keras often requires the data type float32
-data2 = data2.astype('float32')
+#data2 = data2.astype('float32')
 
 #data2.head(10)
  
 # In[17]
-train = data2[0:1000,:]   # length 101
-test = data2[1000:,:]     # length 5
+train = data2[0:1000]   # length 1001
+test = data2[1000:]     # length 814
 
 # In[18]
 test.head(10)
@@ -417,4 +419,3 @@ plt.plot(test_predict.reshape(-1, 1), label='Prediction', color='#ff0066')
 plt.legend(loc='upper left');
 plt.savefig('./img/lstm_close.png')
 plt.show()
-

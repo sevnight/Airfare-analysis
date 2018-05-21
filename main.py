@@ -30,10 +30,14 @@ def prepareData(data):
     ts = data['Buntu']
     return ts
 
-#data = loadFile('data.csv', 'Date')
-#ts= prepareData(data)
-#ts.head(10) #выведем первые 5 элементов ряда
-ts = pd.read_csv('data3.csv', sep=';', parse_dates=True, index_col=0)
+data = loadFile('data.csv', 'Date')
+ts2= prepareData(data)
+ts2.head(10) #выведем первые 5 элементов ряда
+
+# In[54]
+dateparse = lambda dates: pd.datetime.strptime(dates,"%d.%m.%y")
+data=pd.read_csv('data3.csv', index_col="Data", parse_dates=[0],date_parser=dateparse )
+ts=data['Price']
 
 ts.head(10)
 

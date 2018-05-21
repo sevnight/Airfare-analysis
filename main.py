@@ -15,26 +15,8 @@ from keras.models import Sequential
 from keras.layers import Dense, LSTM
 from sklearn.preprocessing import MinMaxScaler
 
+
 # In[2]
-
-# Функция загрузки файла
-def loadFile(filename, dateCol):
-    dateparse = lambda dates: pd.datetime.strptime(dates, '%Y-%m')
-    data = pd.read_csv(filename,index_col=dateCol, parse_dates=[0],date_parser=dateparse)
-    return data
-
-# Функция подготовки временного ряда. 
-# Ubuntu лежит в основе самых популярных OS - Linux Mint, Steam, Ubuntu. Просуммируем их
-def prepareData(data):
-    data['Buntu']=data['Linux Mint']+data['Steam OS']+data['Ubuntu']
-    ts = data['Buntu']
-    return ts
-
-data = loadFile('data.csv', 'Date')
-ts2= prepareData(data)
-ts2.head(10) #выведем первые 5 элементов ряда
-
-# In[54]
 dateparse = lambda dates: pd.datetime.strptime(dates,"%d.%m.%y")
 data=pd.read_csv('data3.csv', index_col="Data", parse_dates=[0],date_parser=dateparse )
 ts=data['Price']
@@ -56,6 +38,7 @@ def test_stationarity(timeseries):
     std = plt.plot(rolstd, color='black', label = 'Standard Deviation')
     plt.legend(loc='best')
     plt.title('Rolling Mean & Standard Deviation')
+    plt.savefig('./img/arima/1_RollingMean&StandardDeviation.png')
     plt.show(block=False)
     
     # Perform Dickey-Fuller test:
@@ -69,6 +52,7 @@ def test_stationarity(timeseries):
         print('есть единичные корни, ряд не стационарен')
     else:
         print('единичных корней нет, ряд стационарен')
+
 
 plt.plot(ts)
 test_stationarity(ts)
@@ -86,6 +70,7 @@ ts_log = remove_log(ts)
 moving_avg = rolling_mean(ts_log)
 plt.plot(ts_log)
 plt.plot(moving_avg, color='red')
+plt.savefig('./img/arima/2_log.png')
 plt.show()
 
 # In[5]:
@@ -97,6 +82,7 @@ def remove_moving_avg(ts, moving_avg):
 ts_log_moving_avg_diff = remove_moving_avg(ts_log, moving_avg)
 ts_log_moving_avg_diff.head(12)
 plt.plot(ts_log_moving_avg_diff)
+plt.savefig('./img/arima/3_moving.png')
 plt.show()
 
 # In[6]:
@@ -113,6 +99,7 @@ def exp_wighted_avg(ts_log):
 expwighted_avg =exp_wighted_avg(ts_log)
 plt.plot(ts_log)
 plt.plot(expwighted_avg, color='red')
+plt.savefig('./img/arima/4_exp.png')
 plt.show()
 
 # In[8]:
@@ -128,6 +115,7 @@ def  series_diff(ts_log):
 
 ts_log_diff = series_diff(ts_log)
 plt.plot(ts_log_diff)
+plt.savefig('./img/arima/5_yt-yt+1.png')
 plt.show()
 
 # In[10]:
@@ -163,6 +151,7 @@ def split_analysis(ts_log):
     plt.plot(splits[2], label='Residuals')
     plt.legend(loc='best')
     plt.tight_layout()
+    plt.savefig('./img/arima/6_residual.png')
     plt.show()
     return splits
     
@@ -181,7 +170,9 @@ test_stationarity(ts_log_decompose)
 from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
 def plot_correlation_funcs(ts_log_diff):
     plot_acf(ts_log_diff.values.squeeze(), lags=25)
+    plt.savefig('./img/arima/7_1_acf.png')
     plot_pacf(ts_log_diff, lags=25)
+    plt.savefig('./img/arima/7_2_pacf.png')
     plt.show()
     
 plot_correlation_funcs(ts_log_diff)
@@ -197,6 +188,7 @@ def find_ARIMA(ts_log, ts_log_diff, order):
     plt.plot(ts_log_diff)
     plt.plot(results.fittedvalues, color='red')
     plt.title('RSS: %.4f'% sum((results.fittedvalues-ts_log_diff)**2))
+    plt.savefig('./img/arima/8_arima.png')
     plt.show()
     return results
 
@@ -207,7 +199,7 @@ print('MA-модель')
 results_MA = find_ARIMA(ts_log, ts_log_diff, (0,1,2))
 
 print('ARIMA-модель')
-results_ARIMA = find_ARIMA(ts_log, ts_log_diff, (2,1,2))
+results_ARIMA = find_ARIMA(ts_log, ts_log_diff, (1,1,1))
 
 # In[15]:
 
@@ -215,7 +207,7 @@ results_ARIMA = find_ARIMA(ts_log, ts_log_diff, (2,1,2))
 def make_prediction(ts, ts_log, results_ARIMA):
     predictions_ARIMA_diff = pd.Series(results_ARIMA.fittedvalues, copy=True)
     predictions_ARIMA_diff.head()
-    future = results_ARIMA.predict('2017-09-01', '2018-01-01')
+    future = results_ARIMA.predict('19.12.17', '24.12.17')
     future.head()
     pred = predictions_ARIMA_diff.append(future)
     
@@ -231,16 +223,24 @@ def make_prediction(ts, ts_log, results_ARIMA):
     plt.plot(ts)
     plt.plot(predictions_ARIMA)
     plt.title('RMSE: %.4f'% np.sqrt(sum(((predictions_ARIMA-ts).fillna(0))**2)/len(predictions_ARIMA)))
+    plt.savefig('./img/arima/9_prediction.png')
     plt.show()
 
-    predictionRange = predictions_ARIMA.loc['2017-10-01':'2018-01-01']
+    predictionRange = predictions_ARIMA.loc['20.12.17':'24.12.17']
     std = predictionRange.std()
     print('std2: %.4f'% np.sqrt(std))
 
 make_prediction(ts, ts_log, results_ARIMA)
 
+
+
+
+
+
+
+
 # In[16]
-# Начало работы с Нейронкой
+# Начало работы с НЕЙРОННОЙ СЕТЬЮ
 
 def prepare_data(data, lags=1):
     """
@@ -248,9 +248,9 @@ def prepare_data(data, lags=1):
     """
     X, y = [], []
     for row in range(len(data) - lags - 1):
-        a = data[row:(row + lags), 0]
+        a = data[row:(row + lags)]
         X.append(a)
-        y.append(data[row + lags, 0])
+        y.append(data[row + lags])
     return np.array(X), np.array(y)
 
 np.random.seed(7)

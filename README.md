@@ -11,8 +11,6 @@
   * conda install statsmodels;
   * conda install keras;
   * conda install sklearn;
-
-### Rolling Mean and Standard Deviation
 <p align="center">
   <img src="https://github.com/sevnight/Airfare-analysis/blob/master/img/arima/1_RollingMean%26StandardDeviation.png?raw=true"/>
 </p>

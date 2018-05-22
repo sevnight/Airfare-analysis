@@ -22,6 +22,8 @@ def loadFile(filename, dateCol):
     return data
 
 # In[2]
+# airfare.csv содержит цены на билет по направлению Москва - Санкт-Питербург
+# airfare2.csv содержит цены на билет по направлению Москва - Симферополь
 data=loadFile('airfare.csv',"Date")
 ts=data['Price']
 
@@ -210,7 +212,7 @@ results_ARIMA = find_ARIMA(ts_log, ts_log_diff, (2,1,2))
 def make_prediction(ts, ts_log, results_ARIMA):
     predictions_ARIMA_diff = pd.Series(results_ARIMA.fittedvalues, copy=True)
     predictions_ARIMA_diff.head()
-    future = results_ARIMA.predict('20.4.19', '23.4.19')
+    future = results_ARIMA.predict('22.4.19', '27.4.19')
     future.head()
     pred = predictions_ARIMA_diff.append(future)
     
@@ -229,7 +231,7 @@ def make_prediction(ts, ts_log, results_ARIMA):
     plt.savefig('./img/arima/9_prediction.png')
     plt.show()
 
-    predictionRange = predictions_ARIMA.loc['21.4.19':'23.4.19']
+    predictionRange = predictions_ARIMA.loc['22.4.19':'27.4.19']
     std = predictionRange.std()
     print('std2: %.4f'% np.sqrt(std))
 
@@ -258,7 +260,7 @@ def prepare_data(data, lags=1):
 
 np.random.seed(7)
 
-df=loadFile('data.csv',"Data")
+df=loadFile('airfare.csv',"Date")
 data2=df['Price']
 
 data2.head(10)
@@ -271,8 +273,8 @@ data2.head(10)
 #data2.head(10)
  
 # In[17]
-train = data2[0:1000]   # length 1001
-test = data2[1000:]     # length 814
+train = data2[0:250]   # length 250
+test = data2[250:]     # length 
 
 # In[18]
 test.head(10)
@@ -313,19 +315,19 @@ test_predict = mdl.predict(X_test)
  
 # shift train predictions for plotting
 train_predict_plot = np.empty_like(data2)
-train_predict_plot[:, :] = np.nan
-train_predict_plot[lags: len(train_predict) + lags, :] = train_predict
+train_predict_plot[:] = np.nan
+train_predict_plot[lags: len(train_predict) + lags] = train_predict[0]
  
 # shift test predictions for plotting
 test_predict_plot = np.empty_like(data2)
-test_predict_plot[:, :] = np.nan
-test_predict_plot[len(train_predict)+(lags*2)+1:len(data2)-1, :] = test_predict
+test_predict_plot[:] = np.nan
+test_predict_plot[len(train_predict)+(lags*2)+1:len(data2)-1] = test_predict[0]
  
 # plot baseline and predictions
-plt.plot(data2, label='Observed', color='#006699');
-plt.plot(train_predict_plot, label='Prediction for Train Set', color='#006699', alpha=0.5);
-plt.plot(test_predict_plot, label='Prediction for Test Set', color='#ff0066');
-plt.legend(loc='best');
+plt.plot(data2, label='Observed', color='#006699')
+plt.plot(train_predict_plot, label='Prediction for Train Set', color='#006699', alpha=0.5)
+plt.plot(test_predict_plot, label='Prediction for Test Set', color='#ff0066')
+plt.legend(loc='best')
 plt.title('Artificial Neural Network')
 plt.savefig('./img/art_neuro.png')
 plt.show()

@@ -212,7 +212,7 @@ results_ARIMA = find_ARIMA(ts_log, ts_log_diff, (2,1,2))
 def make_prediction(ts, ts_log, results_ARIMA):
     predictions_ARIMA_diff = pd.Series(results_ARIMA.fittedvalues, copy=True)
     predictions_ARIMA_diff.head()
-    future = results_ARIMA.predict('22.4.19', '27.4.19')
+    future = results_ARIMA.predict('18.4.19', '23.4.19')
     future.head()
     pred = predictions_ARIMA_diff.append(future)
     
@@ -231,7 +231,7 @@ def make_prediction(ts, ts_log, results_ARIMA):
     plt.savefig('./img/arima/9_prediction.png')
     plt.show()
 
-    predictionRange = predictions_ARIMA.loc['22.4.19':'27.4.19']
+    predictionRange = predictions_ARIMA.loc['18.4.19':'22.4.19']
     std = predictionRange.std()
     print('std2: %.4f'% np.sqrt(std))
 

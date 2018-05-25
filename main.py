@@ -17,18 +17,17 @@ from sklearn.preprocessing import MinMaxScaler
 
 # Функция загрузки файла
 def loadFile(filename, dateCol):
-    dateparse = lambda dates: pd.datetime.strptime(dates,"%d.%m.%y")
+    dateparse = lambda dates: pd.datetime.strptime(dates,"%Y-%m")
     data = pd.read_csv(filename,index_col=dateCol, parse_dates=[0],date_parser=dateparse)
     return data
 
 # In[2]
 # airfare.csv содержит цены на билет по направлению Москва - Санкт-Питербург
 # airfare2.csv содержит цены на билет по направлению Москва - Симферополь
-data=loadFile('airfare.csv',"Date")
-ts=data['Price']
-
+data=loadFile('data_ubuntu.csv',"Date")
+ts=data['Ubuntu']
+print(ts.index)
 ts.head(10)
-
 # In[3]:
 
 # Функция для проверки ряда на стационарность методом Дикки-Фуллера
@@ -79,6 +78,10 @@ plt.plot(moving_avg, color='red')
 plt.savefig('./img/arima/2_log.png')
 plt.show()
 
+# In[6]:
+
+ts_log.dropna(inplace=True)
+test_stationarity(ts_log)
 # In[5]:
 
 # Убираем стационарность (скользящее среднее)
@@ -97,7 +100,7 @@ ts_log_moving_avg_diff.dropna(inplace=True)
 test_stationarity(ts_log_moving_avg_diff)
 
 # In[7]:
-
+"""
 # Убираем стационарность (экспоненциально взвешенное скользящее среднее)
 def exp_wighted_avg(ts_log):
     return ts_log.ewm(halflife=12).mean()
@@ -112,6 +115,7 @@ plt.show()
 
 ts_log_ewma_diff = ts_log - expwighted_avg
 test_stationarity(ts_log_ewma_diff)
+"""
 
 # In[9]:
 
@@ -130,11 +134,15 @@ ts_log_diff.dropna(inplace=True)
 test_stationarity(ts_log_diff)
 
 # In[11]:
+print(ts_log_diff.index)
 
 # Раскладываем модель на составляющие, анализируем остатки
 from statsmodels.tsa.seasonal import seasonal_decompose
 def split_series(ts_log):
-    decomposition = seasonal_decompose(ts_log,freq=52)
+    ts_state = ts_log_moving_avg_diff 
+    ts_state = ts_state.asfreq('D').fillna(method='pad') 
+    ts_state.head()
+    decomposition = seasonal_decompose(ts_log)
 
     trend = decomposition.trend
     seasonal = decomposition.seasonal
@@ -160,7 +168,7 @@ def split_analysis(ts_log):
     plt.show()
     return splits
     
-residuals = split_analysis(ts_log)[2]
+residuals = split_analysis(ts_log_diff)[2]
 
 # In[12]:
 
@@ -168,6 +176,7 @@ residuals = split_analysis(ts_log)[2]
 ts_log_decompose = residuals
 ts_log_decompose.dropna(inplace=True)
 test_stationarity(ts_log_decompose)
+
 
 # In[13]:
 
@@ -187,26 +196,42 @@ plot_correlation_funcs(ts_log_diff)
 # Строим различные модели ARIMA, пытаемся подобрать правильную
 from statsmodels.tsa.arima_model import ARIMA
 
-def find_ARIMA(ts_log, ts_log_diff, order):
+def find_ARIMA(ts_log, order):
     model = ARIMA(ts_log, order)  
     results = model.fit(disp=-1)  
-    plt.plot(ts_log_diff)
+    plt.plot(ts_log)
     plt.plot(results.fittedvalues, color='red')
-    plt.title('RSS: %.4f'% sum((results.fittedvalues-ts_log_diff)**2))
+    rowToSum = (results.fittedvalues-ts_log_diff)
+    rowToSum.dropna(inplace=True)
+    plt.title('RSS: %.4f'% sum(rowToSum**2))
     plt.savefig('./img/arima/8_arima.png')
     plt.show()
     return results
 
 print('AR-модель')
-results_AR = find_ARIMA(ts_log, ts_log_diff, (2,1,0))
+results_AR = find_ARIMA(ts_log_diff, (2,1,0))
 
-print('MA-модель')
-results_MA = find_ARIMA(ts_log, ts_log_diff, (0,1,2))
+#print('MA-модель')
+#results_MA = find_ARIMA(ts_log_diff, (0,1,2))
 
 print('ARIMA-модель')
-results_ARIMA = find_ARIMA(ts_log, ts_log_diff, (2,1,2))
+results_ARIMA = find_ARIMA(ts_log_diff, (2,1,2))
 
 # In[15]:
+def appendFreq(ts,freq):
+    print(ts.index)
+    tsn = pd.Series(ts.values,ts.index)
+    tsn = tsn.asfreq(freq)
+    print(tsn.index)
+    return tsn
+
+ts_log_diff=appendFreq(ts_log_diff,'D')
+
+#ts#=appendFreq(ts,52)
+
+ts.head(300)
+
+# In[19]:
 
 # По модели ARIMA пытаемся сделать прогноз
 def make_prediction(ts, ts_log, results_ARIMA):
@@ -231,11 +256,13 @@ def make_prediction(ts, ts_log, results_ARIMA):
     plt.savefig('./img/arima/9_prediction.png')
     plt.show()
 
-    predictionRange = predictions_ARIMA.loc['18.4.19':'22.4.19']
+    predictionRange = predictions_ARIMA.loc['15.4.19':'22.4.19']
     std = predictionRange.std()
     print('std2: %.4f'% np.sqrt(std))
 
-make_prediction(ts, ts_log, results_ARIMA)
+
+
+make_prediction(ts, ts_log_diff, results_AR)
 
 
 

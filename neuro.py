@@ -2,7 +2,7 @@
 # Начало работы с НЕЙРОННОЙ СЕТЬЮ
 import pandas as pd
 import numpy as np
-import matplotlib.pylab as plt
+from matplotlib import pyplot as plt
 import math
 from matplotlib.pylab import rcParams
 #rcParams['figure.figsize'] = 15, 6

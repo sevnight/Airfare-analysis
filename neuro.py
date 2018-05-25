@@ -4,8 +4,8 @@ import pandas as pd
 import numpy as np
 from matplotlib import pyplot as plt
 import math
-from matplotlib.pylab import rcParams
-#rcParams['figure.figsize'] = 15, 6
+from matplotlib import rcParams
+rcParams['figure.figsize'] = 15, 6
 import keras
 import math
 import sklearn

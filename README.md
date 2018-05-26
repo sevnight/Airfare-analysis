@@ -6,6 +6,7 @@
 2. Install Anaconda;
 3. Install library:
   * conda install numpy;
+  * conda install scipy;
   * conda install pandas;
   * conda install matplotlib;
   * conda install statsmodels;

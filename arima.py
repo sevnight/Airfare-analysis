@@ -1,3 +1,6 @@
+#airdata3.csv Москва-Питер
+#airdata2.csv Москва-Сочи(Адлер)
+#airdata.csv 
 # In[0] 
 # load required modules
 import pandas as pd
@@ -12,7 +15,6 @@ import math
 dateparse = lambda dates: pd.datetime.strptime(dates,"%Y-%m-%d")
 df = pd.read_csv('airdata.csv', header=0, index_col='Date', parse_dates=[0],date_parser=dateparse)
 df.sort_index(inplace=True)
-#print(df.head(6))
 
 # split into training and test sets
 y = df['Price']

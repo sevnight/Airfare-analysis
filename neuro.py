@@ -1,5 +1,4 @@
 # In[16]
-# Начало работы с НЕЙРОННОЙ СЕТЬЮ
 import pandas as pd
 import numpy as np
 from matplotlib import pyplot as plt

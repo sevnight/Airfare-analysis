@@ -18,7 +18,7 @@ np.random.seed(7)
  
 # import data set
 dateparse = lambda dates: pd.datetime.strptime(dates,"%Y-%m-%d")
-df = pd.read_csv('airdata.csv', header=0, index_col='Date', parse_dates=[0],date_parser=dateparse)
+df = pd.read_csv('airdata3.csv', header=0, index_col='Date', parse_dates=[0],date_parser=dateparse)
 df.sort_index(inplace=True)
 data = df.values
  
@@ -26,8 +26,8 @@ data = df.values
 data = data.astype('float32')
  
 # slice the data
-train = data[0:50, :]   # length 120
-test = data[50:, :]     # length 24
+train = data[0:250, :]   # length 120
+test = data[250:, :]     # length 24
 
 def prepare_data(data, lags=1):
     """
@@ -162,7 +162,7 @@ np.random.seed(1)
  
 # load the dataset
 dateparse = lambda dates: pd.datetime.strptime(dates,"%Y-%m-%d")
-df = pd.read_csv('airdata.csv', header=0, index_col='Date', parse_dates=[0],date_parser=dateparse)
+df = pd.read_csv('airdata3.csv', header=0, index_col='Date', parse_dates=[0],date_parser=dateparse)
 df.sort_index(inplace=True)
 data = df.values
 data = data.astype('float32')
@@ -172,8 +172,8 @@ scaler = MinMaxScaler(feature_range=(0, 1))
 dataset = scaler.fit_transform(data)
  
 # split into train and test sets
-train = dataset[0:50, :]
-test = dataset[50:, :]
+train = dataset[0:250, :]
+test = dataset[250:, :]
  
 # reshape into X=t and Y=t+1
 lags = 3
